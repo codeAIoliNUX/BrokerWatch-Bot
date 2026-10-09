@@ -1,0 +1,32 @@
+[
+  {
+    "name": "Equifax Canada",
+    "url": "https://www.equifax.ca",
+    "email": "",
+    "address": "",
+    "phone": "",
+    "registration_id": "",
+    "registered_date": "",
+    "opt_out_url": "https://www.consumer.equifax.ca/personal/",
+    "notes": "Credit bureau; sells consumer data products under PIPEDA/Law 25.",
+    "hq_country": "CA",
+    "jurisdiction": "CA-QC",
+    "source": "manual:quebec",
+    "first_seen": "2026-10-09"
+  },
+  {
+    "name": "TransUnion Canada",
+    "url": "https://www.transunion.ca",
+    "email": "",
+    "address": "",
+    "phone": "",
+    "registration_id": "",
+    "registered_date": "",
+    "opt_out_url": "https://www.transunion.ca/product/consumer-disclosure",
+    "notes": "Credit bureau; consumer disclosure and opt-out available.",
+    "hq_country": "CA",
+    "jurisdiction": "CA-QC",
+    "source": "manual:quebec",
+    "first_seen": "2026-10-09"
+  }
+]

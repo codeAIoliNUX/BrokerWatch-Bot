@@ -1,0 +1,13 @@
+# Curated Quebec-relevant data brokers / resellers.
+# No public registry exists (Law 25 requires CAI PIA filings, not a
+# broker list). Entries below must be individually verified before
+# adding. Records flow through normalize.py into the master dataset.
+- name: Equifax Canada
+  url: https://www.equifax.ca
+  opt_out_url: https://www.consumer.equifax.ca/personal/
+  notes: Credit bureau; sells consumer data products under PIPEDA/Law 25.
+
+- name: TransUnion Canada
+  url: https://www.transunion.ca
+  opt_out_url: https://www.transunion.ca/product/consumer-disclosure
+  notes: Credit bureau; consumer disclosure and opt-out available.
