@@ -64,22 +64,22 @@ class CaliforniaCcpaRegistry(BaseSource):
 
     # NOTE: verify this endpoint — the Delete Act portal may have replaced
     # the legacy download. Point this at the direct CSV/JSON download link.
-    DOWNLOAD_URL = "https://oag.ca.gov/data-brokers"
+    DOWNLOAD_URL = "https://cppa.ca.gov/data_broker_registry/registry.csv"
 
     # Column names seen historically in the registry export, lowercase.
-    COLUMN_MAP = {
-        "name": ["data broker name", "business name", "name"],
-        "url": ["data broker website", "website", "business website"],
-        "email": ["email address", "email"],
-        "address": ["business mailing address", "mailing address", "address"],
-        "phone": ["phone number", "phone"],
-        "registration_id": [
-            "data broker business registration id",
-            "prior registration number",
-            "registration id",
-        ],
-        "registered_date": ["date registered", "registration date"],
-    }
+  COLUMN_MAP = {
+    "name": ["data broker name:", "business name", "name"],
+    "url": ["data broker primary website:", "data broker website", "website", "business website"],
+    "email": ["data broker primary contact email address:", "email address", "email"],
+    "address": ["data broker primary street address:", "business mailing address", "mailing address", "address"],
+    "phone": ["data broker primary phone number: [optional]", "phone number", "phone"],
+    "registration_id": [
+        "data broker business registration id",
+        "prior registration number",
+        "registration id",
+    ],
+    "registered_date": ["date registered", "registration date"],
+}
 
     def fetch(self) -> list[dict]:
         print(f"[{self.slug}] fetching {self.DOWNLOAD_URL}")
@@ -104,7 +104,7 @@ class CaliforniaCcpaRegistry(BaseSource):
 
         reader = csv.DictReader(io.StringIO(resp.text))
         # Normalize headers to lowercase for flexible matching.
-        lower = {h.lower().strip(): h for h in reader.fieldnames or []}
+        lower = {h.lower().strip().rstrip(':'): h for h in reader.fieldnames or []}
         col_lookup = {}
         for canon, candidates in self.COLUMN_MAP.items():
             for cand in candidates:
