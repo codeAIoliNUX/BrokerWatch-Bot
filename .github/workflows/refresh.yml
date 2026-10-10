@@ -1,22 +1,40 @@
-name: Weekly Data Refresh
+name: Refresh data broker registries
 
 on:
   schedule:
-    - cron: '0 4 * * 1'
-  workflow_dispatch: {}
+    # Runs at 09:00 UTC every Monday (adjust as desired)
+    - cron: "0 9 * * 1"
+  workflow_dispatch: {}   # allows manual trigger from GitHub UI
 
 permissions:
-  contents: write
+  contents: write   # required so the job can push commits
 
 jobs:
-  refresh:
+  ingest:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
         with:
-          python-version: '3.12'
-      - name: Run pipeline
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Run ingestion
+        run: python -m src.ingest
+
+      - name: Commit and push if data changed
         run: |
-          pip install httpx pyyaml
-          python -m src.ingest
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add data/sources/*.json
+          if git diff --cached --quiet; then
+            echo "No changes detected - skipping commit."
+          else
+            git commit -m "Auto-refresh: registry data update $(date -u +%Y-%m-%d)"
+            git push
+          fi
