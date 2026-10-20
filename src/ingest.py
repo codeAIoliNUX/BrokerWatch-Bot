@@ -1,9 +1,4 @@
-"""BrokerWatch ingest: pull upstream data broker sources.
-
-Each source produces a list of normalized records. Records are saved
-per-source as JSON snapshots in data/sources/, preserving provenance.
-"""
-
+"""BrokerWatch ingest: pull upstream data broker sources."""
 from __future__ import annotations
 
 import csv
@@ -19,18 +14,10 @@ import yaml
 ROOT = Path(__file__).resolve().parent.parent
 SOURCES_DIR = ROOT / "data" / "sources"
 SOURCES_DIR.mkdir(parents=True, exist_ok=True)
-
 TODAY = str(date.today())
 
-# Normalized record keys. Unknown fields fall back to "".
-RECORD_KEYS = (
-    "name", "url", "email", "address", "phone",
-    "registration_id", "registered_date",
-    "opt_out_url", "notes",
-)
+RECORD_KEYS = ("name", "url", "email", "address", "phone", "registration_id", "registered_date", "opt_out_url", "notes")
 
-
-# ---------------------------------------------------------------- adapters
 
 class BaseSource:
     slug = "base"
@@ -57,29 +44,41 @@ class BaseSource:
 
 
 class CaliforniaCcpaRegistry(BaseSource):
-    """California AG data broker registry (mandatory self-registration)."""
+    """California CPPA data broker registry (mandatory self-registration)."""
 
     slug = "ccpa_registry"
-    label = "California AG Data Broker Registry"
-
-    # NOTE: verify this endpoint — the Delete Act portal may have replaced
-    # the legacy download. Point this at the direct CSV/JSON download link.
+    label = "California Data Broker Registry"
     DOWNLOAD_URL = "https://cppa.ca.gov/data_broker_registry/registry.csv"
 
-    # Column names seen historically in the registry export, lowercase.
-  COLUMN_MAP = {
-    "name": ["data broker name:", "business name", "name"],
-    "url": ["data broker primary website:", "data broker website", "website", "business website"],
-    "email": ["data broker primary contact email address:", "email address", "email"],
-    "address": ["data broker primary street address:", "business mailing address", "mailing address", "address"],
-    "phone": ["data broker primary phone number: [optional]", "phone number", "phone"],
-    "registration_id": [
-        "data broker business registration id",
-        "prior registration number",
-        "registration id",
-    ],
-    "registered_date": ["date registered", "registration date"],
-}
+    COLUMN_MAP = {
+        "name": ["data broker name", "business name"],
+        "url": [
+            "data broker primary website",
+            "data broker's primary website",
+            "data broker website",
+        ],
+        "email": [
+            "data broker primary contact email address",
+            "email address",
+        ],
+        "address": [
+            "data broker primary street address",
+            "business mailing address",
+        ],
+        "phone": [
+            "data broker primary phone number [optional]",
+            "data broker primary phone number",
+            "phone number",
+        ],
+        "registration_id": [
+            "data broker business registration id",
+            "prior registration number",
+        ],
+        "registered_date": ["date registered"],
+        "opt_out_url": [
+            "data broker's primary website that contains details on how consumers can exercise their ca consumer privacy rights",
+        ],
+    }
 
     def fetch(self) -> list[dict]:
         print(f"[{self.slug}] fetching {self.DOWNLOAD_URL}")
@@ -87,24 +86,22 @@ class CaliforniaCcpaRegistry(BaseSource):
             self.DOWNLOAD_URL,
             follow_redirects=True,
             timeout=60,
-            headers={"User-Agent": "BrokerWatch/0.1 (open data project)"},
+            headers={"User-Agent": "BrokerWatch/0.1"},
         )
         resp.raise_for_status()
 
-        content_type = resp.headers.get("content-type", "")
-        if "html" in content_type:
-            # We hit a page, not a file — the endpoint needs updating.
-            print(
-                f"[{self.slug}] WARNING: received HTML, not a data file.\n"
-                "    The download URL is stale or points at a portal page.\n"
-                "    Open it in a browser and copy the direct CSV/JSON link.",
-                file=sys.stderr,
-            )
+        if "html" in resp.headers.get("content-type", ""):
+            print(f"[{self.slug}] WARNING: received HTML, not CSV", file=sys.stderr)
             return []
 
-        reader = csv.DictReader(io.StringIO(resp.text))
-        # Normalize headers to lowercase for flexible matching.
-        lower = {h.lower().strip().rstrip(':'): h for h in reader.fieldnames or []}
+        csv_text = resp.content.decode("utf-8-sig", errors="replace")
+        reader = csv.DictReader(io.StringIO(csv_text))
+
+        lower = {
+            h.replace("\u2019", "'").lower().strip().strip(":").strip(): h
+            for h in reader.fieldnames or []
+        }
+
         col_lookup = {}
         for canon, candidates in self.COLUMN_MAP.items():
             for cand in candidates:
@@ -117,12 +114,14 @@ class CaliforniaCcpaRegistry(BaseSource):
             vals = {canon: row.get(col, "") for canon, col in col_lookup.items()}
             if not vals.get("name"):
                 continue
-            records.append(self.make_record(
-                source=self.slug,
-                hq_country="US",
-                jurisdiction="US-CA",
-                **vals,
-            ))
+            records.append(
+                self.make_record(
+                    source=self.slug,
+                    hq_country="US",
+                    jurisdiction="US-CA",
+                    **vals,
+                )
+            )
         return records
 
 
@@ -138,7 +137,6 @@ class CuratedListSource(BaseSource):
 
     def fetch(self) -> list[dict]:
         if not self.filepath.exists():
-            print(f"[{self.slug}] no seed file at {self.filepath}, skipping")
             return []
         entries = yaml.safe_load(self.filepath.read_text()) or []
         return [
@@ -152,15 +150,11 @@ class CuratedListSource(BaseSource):
         ]
 
 
-# ---------------------------------------------------------------- pipeline
-
 def build_sources() -> list[BaseSource]:
     return [
         CaliforniaCcpaRegistry(),
-        CuratedListSource("canada_federal",
-                          "Canada (federal, curated)", "CA", "CA-FED"),
-        CuratedListSource("quebec",
-                          "Quebec (curated)", "CA", "CA-QC"),
+        CuratedListSource("canada_federal", "Canada federal", "CA", "CA-FED"),
+        CuratedListSource("quebec", "Quebec", "CA", "CA-QC"),
     ]
 
 
