@@ -12,7 +12,7 @@
     "hq_country": "CA",
     "jurisdiction": "CA-QC",
     "source": "manual:quebec",
-    "first_seen": "2026-10-09"
+    "first_seen": "2026-10-20"
   },
   {
     "name": "TransUnion Canada",
@@ -27,6 +27,6 @@
     "hq_country": "CA",
     "jurisdiction": "CA-QC",
     "source": "manual:quebec",
-    "first_seen": "2026-10-09"
+    "first_seen": "2026-10-20"
   }
 ]
